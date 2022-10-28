@@ -23,6 +23,7 @@ const (
 	hiveMetastoreAttr         = "external_schema.0.hive_metastore_source.0"
 	rdsPostgresAttr           = "external_schema.0.rds_postgres_source.0"
 	rdsMysqlAttr              = "external_schema.0.rds_mysql_source.0"
+	kinesisAttr               = "external_schema.0.kinesis_source.0"
 	redshiftAttr              = "external_schema.0.redshift_source.0"
 )
 
@@ -99,6 +100,7 @@ A database contains one or more named schemas. Each schema in a database contain
 						forceNewIfListSizeChanged("hive_metastore_source"),
 						forceNewIfListSizeChanged("rds_postgres_source"),
 						forceNewIfListSizeChanged("rds_mysql_source"),
+						forceNewIfListSizeChanged("kinesis_source"),
 						forceNewIfListSizeChanged("redshift_source"),
 					),
 					Schema: map[string]*schema.Schema{
@@ -117,6 +119,7 @@ A database contains one or more named schemas. Each schema in a database contain
 								fmt.Sprintf("%s.0.hive_metastore_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_postgres_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_mysql_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.kinesis_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.redshift_source", schemaExternalSchemaAttr),
 							},
 							Elem: &schema.Resource{
@@ -197,6 +200,7 @@ A database contains one or more named schemas. Each schema in a database contain
 								fmt.Sprintf("%s.0.data_catalog_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_postgres_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_mysql_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.kinesis_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.redshift_source", schemaExternalSchemaAttr),
 							},
 							Elem: &schema.Resource{
@@ -250,6 +254,7 @@ A database contains one or more named schemas. Each schema in a database contain
 								fmt.Sprintf("%s.0.data_catalog_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.hive_metastore_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_mysql_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.kinesis_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.redshift_source", schemaExternalSchemaAttr),
 							},
 							Elem: &schema.Resource{
@@ -318,6 +323,7 @@ A database contains one or more named schemas. Each schema in a database contain
 								fmt.Sprintf("%s.0.data_catalog_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.hive_metastore_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_postgres_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.kinesis_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.redshift_source", schemaExternalSchemaAttr),
 							},
 							Elem: &schema.Resource{
@@ -370,6 +376,46 @@ A database contains one or more named schemas. Each schema in a database contain
 								},
 							},
 						},
+						"kinesis_source": {
+							Type:        schema.TypeList,
+							Description: "Configures the external schema to reference data from Kinesis Data Streams.",
+							Optional:    true,
+							MaxItems:    1,
+							ConflictsWith: []string{
+								fmt.Sprintf("%s.0.data_catalog_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.hive_metastore_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.rds_postgres_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.rds_mysql_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.redshift_source", schemaExternalSchemaAttr),
+							},
+							Elem: &schema.Resource{
+								Schema: map[string]*schema.Schema{
+									"iam_role_arns": {
+										Type:     schema.TypeList,
+										Required: true,
+										MinItems: 1,
+										MaxItems: 10,
+										Description: `The Amazon Resource Name (ARN) for the IAM roles that your cluster uses for authentication and authorization.
+	As a minimum, the IAM roles must have permission to perform a LIST operation on the Amazon S3 bucket to be accessed and a GET operation on the Amazon S3 objects the bucket contains.
+	If the external database is defined in an Amazon Athena data catalog or the AWS Glue Data Catalog, the IAM role must have permission to access Athena unless catalog_role is specified.
+	For more information, see https://docs.aws.amazon.com/redshift/latest/dg/c-spectrum-iam-policies.html.
+
+  When you attach a role to your cluster, your cluster can assume that role to access Amazon S3, Athena, and AWS Glue on your behalf.
+	If a role attached to your cluster doesn't have access to the necessary resources, you can chain another role, possibly belonging to another account.
+	Your cluster then temporarily assumes the chained role to access the data. You can also grant cross-account access by chaining roles.
+	You can chain a maximum of 10 roles. Each role in the chain assumes the next role in the chain, until the cluster assumes the role at the end of chain.
+
+  To chain roles, you establish a trust relationship between the roles. A role that assumes another role must have a permissions policy that allows it to assume the specified role.
+	In turn, the role that passes permissions must have a trust policy that allows it to pass its permissions to another role.
+	For more information, see https://docs.aws.amazon.com/redshift/latest/mgmt/authorizing-redshift-service.html#authorizing-redshift-service-chaining-roles`,
+										ForceNew: true,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+									},
+								},
+							},
+						},
 						"redshift_source": {
 							Type:        schema.TypeList,
 							Description: "Configures the external schema to reference datashare database.",
@@ -380,6 +426,7 @@ A database contains one or more named schemas. Each schema in a database contain
 								fmt.Sprintf("%s.0.hive_metastore_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_postgres_source", schemaExternalSchemaAttr),
 								fmt.Sprintf("%s.0.rds_mysql_source", schemaExternalSchemaAttr),
+								fmt.Sprintf("%s.0.kinesis_source", schemaExternalSchemaAttr),
 							},
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
@@ -480,6 +527,7 @@ func resourceRedshiftSchemaReadExternal(db *DBConnection, d *schema.ResourceData
 			WHEN eskind = 3 THEN 'rds_postgres_source'
 			WHEN eskind = 4 THEN 'redshift_source'
 			WHEN eskind = 7 THEN 'rds_mysql_source'
+      WHEN eskind = 9 THEN 'kinesis_source'
 			ELSE 'unknown'
 		END,
 		trim(databasename),
@@ -556,6 +604,11 @@ func resourceRedshiftSchemaReadExternal(db *DBConnection, d *schema.ResourceData
 			return fmt.Errorf("Error parsing iam_role_arns: %v", err)
 		}
 		sourceConfiguration["secret_arn"] = &secretArn
+	case sourceType == "kinesis_source":
+		sourceConfiguration["iam_role_arns"], err = splitCsvAndTrim(iamRole)
+		if err != nil {
+			return fmt.Errorf("Error parsing iam_role_arns: %v", err)
+		}
 	case sourceType == "redshift_source":
 		if sourceSchema != "" {
 			sourceConfiguration["schema"] = &sourceSchema
@@ -663,6 +716,9 @@ func resourceRedshiftSchemaCreateExternal(tx *sql.Tx, d *schema.ResourceData) er
 	} else if _, isRdsMysql := d.GetOk(rdsMysqlAttr); isRdsMysql {
 		// rds mysql source
 		configQuery = getRdsMysqlConfigQueryPart(d, sourceDbName)
+	} else if _, isKinesis := d.GetOk(kinesisAttr); isKinesis {
+		// kinesis source
+		configQuery = getKinesisConfigQueryPart(d, sourceDbName)
 	} else if _, isRedshift := d.GetOk(redshiftAttr); isRedshift {
 		// redshift source
 		configQuery = getRedshiftConfigQueryPart(d, sourceDbName)
@@ -773,6 +829,17 @@ func getRdsMysqlConfigQueryPart(d *schema.ResourceData, sourceDbName string) str
 	query = fmt.Sprintf("%s IAM_ROLE '%s'", query, pqQuoteLiteral(strings.Join(iamRoleArns, ",")))
 	secretArn := d.Get(fmt.Sprintf("%s.%s", rdsMysqlAttr, "secret_arn")).(string)
 	query = fmt.Sprintf("%s SECRET_ARN '%s'", query, pqQuoteLiteral(secretArn))
+	return query
+}
+
+func getKinesisConfigQueryPart(d *schema.ResourceData, sourceDbName string) string {
+	query := fmt.Sprintf("FROM KINESIS")
+	iamRoleArnsRaw := d.Get(fmt.Sprintf("%s.%s", rdsMysqlAttr, "iam_role_arns")).([]interface{})
+	iamRoleArns := []string{}
+	for _, arn := range iamRoleArnsRaw {
+		iamRoleArns = append(iamRoleArns, arn.(string))
+	}
+	query = fmt.Sprintf("%s IAM_ROLE '%s'", query, pqQuoteLiteral(strings.Join(iamRoleArns, ",")))
 	return query
 }
 
